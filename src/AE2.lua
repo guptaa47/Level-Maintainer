@@ -1,5 +1,7 @@
 local component = require("component")
-local ME = component.me_interface
+-- local ME = component.me_interface
+local ME_storage = component.proxy(cfg.interface_storage, "me_interface")
+local ME_crafting = component.proxy(cfg.interface_crafting, "me_interface")
 
 local AE2 = {}
 
@@ -24,7 +26,7 @@ local function getCraftableForItem(itemName)
     end
     
     -- Look for this specific item in craftables
-    local craftables = ME.getCraftables({["label"] = itemName})
+    local craftables = ME_crafting.getCraftables({["label"] = itemName})
     if #craftables >= 1 then
         itemCache[itemName] = craftables[1] -- Cache only this one item
         return craftables[1]
@@ -44,16 +46,16 @@ function AE2.requestItem(name, threshold, count, fluidName)
             
             if fluidName then
                 local fluidTag = '{Fluid:' .. fluidName .. '}'
-                itemInSystem = ME.getItemInNetwork("ae2fc:fluid_drop", 0, fluidTag)
+                itemInSystem = ME_storage.getItemInNetwork("ae2fc:fluid_drop", 0, fluidTag)
             else
                 if item.name then
                     if item.tag then
-                        itemInSystem = ME.getItemInNetwork(item.name, item.damage or 0, item.tag)
+                        itemInSystem = me_interface.getItemInNetwork(item.name, item.damage or 0, item.tag)
                     end
                     
                     -- Fallback: try with just the internal name and damage
                     if itemInSystem == nil then
-                        itemInSystem = ME.getItemInNetwork(item.name, item.damage or 0)
+                        itemInSystem = ME_storage.getItemInNetwork(item.name, item.damage or 0)
                     end
                 end
             end
@@ -80,7 +82,7 @@ function AE2.requestItem(name, threshold, count, fluidName)
 end
 
 function AE2.checkIfCrafting()
-    local cpus = ME.getCpus()
+    local cpus = ME_crafting.getCpus()
     local items = {}
     for k, v in pairs(cpus) do
         local finaloutput = v.cpu.finalOutput()
@@ -96,6 +98,19 @@ end
 function AE2.clearCache()
     itemCache = {}
     cacheTimestamp = 0
+end
+
+-- Function to return everything in maintained storage network
+function AE2.getMaintained(_type)
+    local items = nil
+    if _type == "items" then
+        items = ME_storage.getItemsInNetwork()
+    elseif _type == "fluids" then
+        items = ME_storage.getFluidsInNetwork()
+    else
+        return
+    end
+    for _, networkItem in ipairs(items) do print(networkItem.label) end
 end
 
 return AE2
