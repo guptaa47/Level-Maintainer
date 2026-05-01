@@ -35,7 +35,7 @@ local function updateRequests(requests, config, status, nameTransform)
         if status[name] ~= true then
             if status[name] == nil then
                 util.logInfo(
-                    "CRITICAL: " .. name .. " is NOT visible to OC storage subnet, so cannot manage threshold",
+                    "CRITICAL: " .. name .. " is either NOT visible to OC storage subnet, so cannot manage threshold, or is empty",
                     "red")
             end
 
