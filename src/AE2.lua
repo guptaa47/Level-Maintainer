@@ -4,7 +4,7 @@ local ME_storage = component.proxy(cfg.interface_storage, "me_interface")
 local ME_crafting = component.proxy(cfg.interface_crafting, "me_interface")
 
 local AE2 = {}
-
+--[[
 -- Lightweight cache for specific items only
 local itemCache = {}
 local cacheTimestamp = 0
@@ -99,6 +99,7 @@ function AE2.clearCache()
     itemCache = {}
     cacheTimestamp = 0
 end
+--]]
 
 -- Function to return everything in maintained storage network
 function AE2.getMaintained(_type)

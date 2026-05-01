@@ -1,4 +1,6 @@
-function dump(o, depth)
+local Utility = {}
+
+function Utility.dump(o, depth)
     if depth == nil then depth = 0 end
 
     if depth > 10 then return "..." end
@@ -7,7 +9,7 @@ function dump(o, depth)
         local s = '{ '
         for k, v in pairs(o) do
             if type(k) ~= 'number' then k = '"' .. k .. '"' end
-            s = s .. '[' .. k .. '] = ' .. dump(v, depth + 1) .. ',\n'
+            s = s .. '[' .. k .. '] = ' .. Utility.dump(v, depth + 1) .. ',\n'
         end
         return s .. '} '
     else
@@ -15,7 +17,7 @@ function dump(o, depth)
     end
 end
 
-function parser(string)
+function Utility.parser(string)
     if type(string) == "string" then
         local numberString = string.gsub(string, "([^0-9]+)", "")
         if tonumber(numberString) then
@@ -27,8 +29,10 @@ function parser(string)
     end
 end
 
-function logInfo(string)
+function Utility.logInfo(string)
     if type(string) == "string" then
         print("[" .. os.date("%H:%M:%S") .. "] " .. string)
     end
 end
+
+return Utility
