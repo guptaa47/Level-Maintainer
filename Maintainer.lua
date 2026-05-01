@@ -40,7 +40,7 @@ local function updateRequests(requests, config, status, nameTransform)
             end
 
             table.insert(requests, {
-                name, 
+                nameTransform(name), 
                 vals[2], 
                 {label = nameTransform(name)}
             })
@@ -94,6 +94,9 @@ function assignJobs(jobs, requests, in_flight)
 
             if craftable ~= nil then
                 local job = craftable.request(batch_size, false)
+                if not job.isComputing() and not job.isDone() then
+                    util.logInfo("Possibly insufficient inputs for " .. name, "yellow")
+                end
                 table.insert(jobs, {name, job})
             end
         end
@@ -112,6 +115,8 @@ local function trackPending(jobs)
                 if job.hasFailed() then
                     util.logInfo("Failed to request " .. name, "yellow")
                     craftableCache[name] = nil
+                elseif job.isCanceled() then
+                    util.logInfo("Canceled request for " .. name, "yellow")
                 else
                     util.logInfo("Requested " .. name)
                 end
