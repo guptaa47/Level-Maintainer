@@ -35,7 +35,7 @@ local function updateRequests(requests, config, status, nameTransform)
         if status[name] ~= true then
             if status[name] == nil then
                 util.logInfo(
-                    "CRITICAL: " .. lbl .. " is NOT visible to OC storage subnet, so cannot manage threshold",
+                    "CRITICAL: " .. name .. " is NOT visible to OC storage subnet, so cannot manage threshold",
                     "red")
             end
 
@@ -170,9 +170,7 @@ function levelMaintain()
     -- Send requests to crafting network
     local jobs = {}
     assignJobs(jobs, requests, in_flight)
-    print("assigned jobs")
     trackPending(jobs)
-    print("done pending")
 end
 
 local function sleepHandler()
