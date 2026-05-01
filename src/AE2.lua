@@ -113,7 +113,7 @@ function AE2.getMaintained(_type)
     else
         return
     end
-    for _, networkItem in ipairs(items) do print(networkItem.label) end
+    return items
 end
 
 return AE2
