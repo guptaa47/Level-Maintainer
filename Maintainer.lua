@@ -23,7 +23,7 @@ local function updateStatus(status, items, config, getAmount)
             util.logInfo("WARN: " .. lbl .. " is visible to OC storage subnet, but not being maintained", "yellow")
         else
             local threshold = itemConfig[2]
-            local cur_amount = getAmount(item)
+            local cur_amount = getAmount(networkItem)
             
             status[lbl] = (threshold ~= nil and cur_amount >= threshold)
         end
@@ -70,7 +70,7 @@ local function ongoingRecipes(in_flight)
     return available_cpus
 end
 
-function assignJobs(jobs, jobCnt, requests, in_flight)
+function assignJobs(jobs, requests, in_flight)
     for _, req in ipairs(requests) do
         local name, batch_size, query = req[1], req[2], req[3]
         if in_flight[name] then
@@ -78,7 +78,7 @@ function assignJobs(jobs, jobCnt, requests, in_flight)
         else
 
             reqCount[name] = (reqCount[name] or 0) + 1
-            local craftable = craftableCache[query]
+            local craftable = craftableCache[name]
             if craftable == nil then
                 local craftables = me_crafting.getCraftables(query)
                 if #craftables == 0 then
@@ -88,41 +88,39 @@ function assignJobs(jobs, jobCnt, requests, in_flight)
                         print("Multiple recipes found for " .. name .. "... selecting the first one", "yellow")
                     end
                     craftable = craftables[1]
-                    craftableCache[query] = craftable
+                    craftableCache[name] = craftable
                 end
             end
 
             if craftable ~= nil then
                 local job = craftable.request(batch_size, false)
-                table.insert(jobs, {name, job, query})
-                jobCnt = jobCnt + 1
+                table.insert(jobs, {name, job})
             end
         end
     end
 end
 
-local function trackPending(jobs, jobCnt)
-    while true do
-        for idx, job in ipairs(jobs) do
-            local name, _job, query = job[1], job[2], job[3]
-            if not _job.isComputing() then
-                jobs[idx] = nil
-                jobCnt = jobCnt - 1
-                if _job.hasFailed() then
+local function trackPending(jobs)
+    while next(jobs) do
+        for i = #jobs, 1, -1 do
+            local row = jobs[i]
+            local name, job = row[1], row[2]
+
+            if not job.isComputing() then
+                table.remove(jobs, i)
+
+                if job.hasFailed() then
                     util.logInfo("Failed to request " .. name, "yellow")
-                    craftableCache[query] = nil
+                    craftableCache[name] = nil
                 else
                     util.logInfo("Requested " .. name)
                 end
             end
         end
-        if jobCnt == 0 then
-            break
-        end
         local id = event.pull(1, "interrupted")
         if id == "interrupted" then
             util.logInfo("interrupted")
-            break
+            return
         end
     end
 end
@@ -134,13 +132,13 @@ function levelMaintain()
         status,
         me_storage.getItemsInNetwork(),
         cfg.items,
-        function(x) return x.size end,
+        function(x) return x.size end
     )
     updateStatus(
         status,
         me_storage.getFluidsInNetwork(),
         cfg.fluids,
-        function(x) return x.amount end,
+        function(x) return x.amount end
     )
 
     -- Build recipe requests
@@ -165,21 +163,25 @@ function levelMaintain()
     end
 
     -- Send requests to crafting network
-    local jobCnt = 0
     local jobs = {}
-    assignJobs(jobs, jobCnt, request, in_flight)
-    trackPending(jobs, jobCnt)
+    assignJobs(jobs, requests, in_flight)
+    print("assigned jobs")
+    trackPending(jobs)
+    print("done pending")
 end
 
 local function sleepHandler()
     local id = event.pull(cfg.sleep, "interrupted")
     if id == "interrupted" then
         util.logInfo("interrupted, printing counts of all requests")
+
         for nme, cnt in pairs(reqCount) do
             util.logInfo(nme .. ": " .. cnt)
         end
-        break
+
+        return false
     end
+    return true
 end
 
 if ok then
@@ -187,7 +189,7 @@ if ok then
         util.logInfo("Started Requesting Items", "blue")
         levelMaintain()
         util.logInfo("Waiting For Next Cycle", "blue")
-        sleepHandler()
+        if not sleepHandler() then break end
     end
 else
     print("Exiting due to error in config")
