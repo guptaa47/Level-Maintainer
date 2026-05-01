@@ -1,9 +1,12 @@
 package.loaded.config = nil
 local cfg = require("config")
+local util = require("src.Utility")
 
 local event = require("event")
 local component = require("component")
 local me = component.me_interface
+local me_storage = component.proxy(cfg.interface_storage, "me_interface")
+local me_crafting = component.proxy(cfg.interface_crafting, "me_interface")
 
 function logInfo(string)
     if type(string) == "string" then
@@ -24,7 +27,7 @@ local ok = true
 local itemCount = 0
 --[[
 for item, config in pairs(cfg.items) do
-    local craftable = me.getCraftables(getCraftableSearchObj(item, config))
+    local craftable = me_crafting.getCraftables(getCraftableSearchObj(item, config))
     itemCount = itemCount + 1
     if #craftable == 1 then
         print("Found recipe for " .. item)
@@ -33,10 +36,10 @@ for item, config in pairs(cfg.items) do
         ok = false
     else
         print("Ambiguous item name " .. item .. ", a random one might be chosen.")
-        print("Current config: " .. dump(config))
-        print("Current search: " .. dump(getCraftableSearchObj(item, config)))
+        print("Current config: " .. util.dump(config))
+        print("Current search: " .. util.dump(getCraftableSearchObj(item, config)))
         for _, c in ipairs(craftable) do
-            print(dump(c.getItemStack()))
+            print(util.dump(c.getItemStack()))
         end
     end
 end
@@ -46,24 +49,45 @@ local craftableCache = {}
 local reqCount = {}
 
 function levelMaintain()
-    local items = me.getItemsInNetwork()
     local status = {}
 
+    -- Get recipes to request
+    local items = me_storage.getItemsInNetwork()
     for _, networkItem in ipairs(items) do
         local lbl = networkItem.label
         if cfg.items[lbl] == nil then
             goto nextItem
         end
+        
+        -- sets status true if # items >= threshold
         if cfg.items[lbl][2] ~= nil and networkItem.size >= cfg.items[lbl][2] then 
             status[lbl] = true
         end
         ::nextItem::
     end
 
+    local fluids = me_storage.getFluidsInNetwork()
+    for _, networkFluid in ipairs(fluids) do
+        local lbl = networkFluid.label
+        if cfg.fluids[lbl] == nil then
+            goto nextFluid
+        end
+
+        if cfg.fluids[lbl][2] ~= nil and networkFluid.amount >= cfg.fluids[lbl][2] then
+            status[lbl] = true
+        end
+        ::nextFluid::
+
     local requests = {}
     for name, cfg in pairs(cfg.items) do
         if status[name] == nil then
-            table.insert(requests, {name, cfg[3], getCraftableSearchObj(name, cfg)})
+            table.insert(requests, {name, cfg[2], getCraftableSearchObj(name, cfg)})
+        end
+    end
+    for name, cfg in pairs(cfg.fluids) do
+        if status[name] == nil then
+            fluid_name = "drop of " .. name
+            table.insert(requests, {name, cfg[2], getCraftableSearchObj(fluid_name, cfg)})
         end
     end
 
@@ -73,7 +97,7 @@ function levelMaintain()
     end
 
     -- Get all ongoing recipes
-    local cpus = me.getCpus()
+    local cpus = me_crafting.getCpus()
     local in_flight = {}
     for idx, cpu in ipairs(cpus) do
         local finalItem = cpu.cpu.finalOutput()
@@ -104,7 +128,7 @@ function levelMaintain()
             end
             reqCount[req[1]] = reqCount[req[1]] + 1
             if craftableCache[req[3]] == nil then
-                local craftables = me.getCraftables(req[3])
+                local craftables = me_crafting.getCraftables(req[3])
                 if #craftables == 0 then
                     print("No recipe is found")
                 else

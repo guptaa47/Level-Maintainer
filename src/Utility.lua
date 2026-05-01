@@ -1,3 +1,4 @@
+package.loaded.config = nil
 local Utility = {}
 
 function Utility.dump(o, depth)
@@ -29,9 +30,21 @@ function Utility.parser(string)
     end
 end
 
-function Utility.logInfo(string)
+function Utility.logInfo(string, color)
+    local color_start = "\27[0m"
+        if color ~= nil and type(color) == "string" then
+            if color == "black" then color_start = "\27[30m"
+            elseif color == "red" then color_start = "\27[31m"
+            elseif color == "green" then color_start = "\27[32m"
+            elseif color == "yellow" then color_start = "\27[33m"
+            elseif color == "blue" then color_start = "\27[34m"
+            elseif color == "purple" then color_start = "\27[35m"
+            elseif color == "cyan" then color_start = "\27[36m"
+            elseif color == "white" then color_start = "\27[37m"
+            end
+        end
     if type(string) == "string" then
-        print("[" .. os.date("%H:%M:%S") .. "] " .. string)
+        print(color_start .. "[" .. os.date("%H:%M:%S") .. "] " .. string .. "\27[0m")
     end
 end
 

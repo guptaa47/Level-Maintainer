@@ -1,3 +1,4 @@
+package.loaded.config = nil
 local ae2 = require("src.AE2")
 local cfg = require("config")
 local util = require("src.Utility") 
@@ -10,10 +11,10 @@ while true do
  
     for item, config in pairs(items) do
         if itemsCrafting[item] == true then
-            logInfo(item .. " is already being crafted, skipping...")
+            util.logInfo(item .. " is already being crafted, skipping...")
         else
             local success, answer = ae2.requestItem(item, config[1], config[2], config[3])
-            logInfo(answer)
+            util.logInfo(answer)
         end
  
     end

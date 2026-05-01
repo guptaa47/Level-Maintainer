@@ -1,4 +1,6 @@
+package.loaded.config = nil
 local component = require("component")
+local cfg = require("config")
 -- local ME = component.me_interface
 local ME_storage = component.proxy(cfg.interface_storage, "me_interface")
 local ME_crafting = component.proxy(cfg.interface_crafting, "me_interface")
