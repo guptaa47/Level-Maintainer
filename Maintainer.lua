@@ -95,7 +95,7 @@ function assignJobs(jobs, requests, in_flight)
             if craftable ~= nil then
                 local job = craftable.request(batch_size, false)
                 if not job.isComputing() and not job.isDone() then
-                    util.logInfo("Possibly insufficient inputs for " .. name, "yellow")
+                    util.logInfo("Possibly insufficient cpu storage for requesting " .. batch_size .. " of " .. name, "yellow")
                 end
                 table.insert(jobs, {name, job})
             end
